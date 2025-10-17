@@ -1,47 +1,41 @@
 # --- Import libraries ---
 from pathlib import Path
 import csv
-from math import sin, cos, atan, radians, atan, tan, pi
+from math import sin, cos, atan, radians, tan, pi
 import numpy as np
 
+# --- helpers/loaders ---
+def get_csv_data(file_path, skip_lines: int = 0):
+    p = Path(file_path)
+    if not p.exists():
+        raise FileNotFoundError(f"CSV not found: {p}")
+    rows = []
+    with open(p, "r", encoding="utf-8-sig", newline="") as f:
+        r = csv.reader(f)
+        for _ in range(skip_lines):
+            next(r, None)
+        for row in r:
+            rows.append(tuple(row))
+    return rows
+
+def to_float(s):
+    try:
+        return float(str(s).strip())
+    except Exception:
+        return None
+    
 # --- Define file paths ---
 root_dir = Path(__file__).resolve().parent.parent
 harris_data = root_dir / "PHYS3116_Group_Code Files" / "HarrisParts.csv"
 krause_data = root_dir / "PHYS3116_Group_Code Files" / "Krause21.csv"
 vandenberg_data = root_dir / "PHYS3116_Group_Code Files" / "vandenberg_table2.csv"
 
-#Information
-def get_csv_data(file_path, skip_lines: int = 0):
-    """
-    Read a CSV file and return a list of rows (tuples).
-    Row 0 is the header if your file has one.
-    Use skip_lines>0 to skip header or extra lines at the top.
-    """
-    p = Path(file_path)
-    if not p.exists():
-        raise FileNotFoundError(f"CSV not found: {p}")
+# Harris -> working table
+csv_data_points = get_csv_data(harris_data, skip_lines=0)
 
-    csv_datapoints = []
-    with open(p, "r", encoding="utf-8", newline="") as file:
-        csv_reader = csv.reader(file)
-        for _ in range(skip_lines):
-            next(csv_reader, None)
-        for row in csv_reader:
-            csv_datapoints.append(tuple(row))
-    return csv_datapoints
-
-# References the data (Harris)
-root_dir = Path(__file__).resolve().parent.parent
-csv_data = root_dir / "PHYS3116_Group_Code Files" / "HarrisParts.csv"
-csv_data_points = get_csv_data(csv_data, skip_lines=0)
-
-# Krause21
-krause_csv = root_dir / "PHYS3116_Group_Code Files" / "Krause21.csv"
-krause_data_points = get_csv_data(krause_csv, skip_lines=0)
-
-# VandenBerg (note the capital B in your file)
-vandenberg_csv = root_dir / "PHYS3116_Group_Code Files" / "vandenBerg_table2.csv"
-vandenberg_data_points = get_csv_data(vandenberg_csv, skip_lines=0)
+# Krause21 + VandenBerg
+krause_data_points     = get_csv_data(krause_data, skip_lines=0)
+vandenberg_data_points = get_csv_data(vandenberg_data, skip_lines=0)
 
 # Column Data Values (Harris CSV)
 """
@@ -106,37 +100,41 @@ def Name_list(n, c=0):
 
 def Galatic_distance(n, c=7):
     values = []
-    for i in range(1, n + 1):                 # row 0 is header
-        cell = csv_data_points[i][c]
-        if len(cell) == 0:
-            values.append(0)
-        elif float(cell) > 10:
+    for i in range(1, n + 1):  # row 0 is header
+        val = to_float(csv_data_points[i][c])
+        if val is None:
+            values.append(0)       # blank or junk like "c:" -> neutral
+        elif val > 10:
             values.append(2)
         else:
             values.append(-2)
     return values
 
-from math import atan, pi  # make sure this import is present at the top
 
 def Gal_inclination(n, c1=7, c2=10):
     values = []
     for i in range(1, n + 1):  # row 0 is header
-        if len(csv_data_points[i][c1]) == 0 or len(csv_data_points[i][c2]) == 0:
+        r_gc = to_float(csv_data_points[i][c1])
+        zval = to_float(csv_data_points[i][c2])
+        if r_gc is None or zval is None or r_gc == 0:
             values.append(0)
-        elif abs(atan(float(csv_data_points[i][c2]) / float(csv_data_points[i][c1])) * 180 / pi) > 60:
+            continue
+        angle = abs(atan(zval / r_gc) * 180.0 / np.pi)
+        if angle > 60:
             values.append(1)
-        elif abs(atan(float(csv_data_points[i][c2]) / float(csv_data_points[i][c1])) * 180 / pi) > 30:
+        elif angle > 30:
             values.append(0)
         else:
             values.append(-1)
     return values
-#Fe_H ratio
+
 def Fe_H_ratio_function(n, c=11):
     values = []
     for i in range(1, n + 1):  # row 0 is header
-        if len(csv_data_points[i][c]) == 0:
-            values.append(0)
-        elif float(csv_data_points[i][c]) < -1.5 or -0.9 < float(csv_data_points[i][c]):
+        feh = to_float(csv_data_points[i][c])
+        if feh is None:
+            values.append(0)          # blank/junk like 'rho_0' -> neutral
+        elif feh < -1.5 or feh > -0.9:
             values.append(2)
         else:
             values.append(-2)
@@ -145,17 +143,19 @@ def Fe_H_ratio_function(n, c=11):
 def Projected_eccentricity(n, c=23):
     values = []
     for i in range(1, n + 1):  # row 0 is header
-        if len(csv_data_points[i][c]) == 0:
+        val = to_float(csv_data_points[i][c])
+        if val is None:
             values.append(0)
-        elif float(csv_data_points[i][c]) < 0.1:
+        elif val < 0.1:
             values.append(0)
-        elif float(csv_data_points[i][c]) < 0.2:
+        elif val < 0.2:
             values.append(0.5)
-        elif float(csv_data_points[i][c]) < 0.7:
+        elif val < 0.7:
             values.append(1)
         else:
             values.append(1.5)
     return values
+
 #Core radius
 
 def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
@@ -251,7 +251,86 @@ def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
 
     return values
 
+# --- quick smoke test (optional) ---
+n_harris = len(csv_data_points) - 1
+print("Harris rows (excl header):", n_harris)
 
+# ===== HARRIS scoring (csv_data_points currently = Harris) =====
+harris_features = [
+    Galatic_distance(n_harris, c=7),                 # R_gc
+    Gal_inclination(n_harris, c1=7, c2=10),         # inclination
+    Fe_H_ratio_function(n_harris, c=11),            # [Fe/H]
+    Projected_eccentricity(n_harris, c=23),         # ellip
+    Gal_Orbit2(n_harris, l=4, s=6, g=7, x=8, y=9, v=24),  # orbit
+]
+Sum_harris = [sum(x) for x in zip(*harris_features)]
+HARRIS_NAME_SCORE = list(zip([csv_data_points[i][0] for i in range(1, n_harris + 1)], Sum_harris))
+HARRIS_NAME_SCORE.sort(key=lambda t: t[1], reverse=True)
 
+print("\n=== HARRIS (top 5) ===")
+print(HARRIS_NAME_SCORE[:5])
+print("=== HARRIS (bottom 5) ===")
+print(HARRIS_NAME_SCORE[-5:])
 
+# ===== KRAUSE scoring =====
+csv_data_points = krause_data_points
+n_krause = len(krause_data_points) - 1
 
+def Age_and_Fe_H_ratio_function(n, c1=6, c2=7):
+    vals = []
+    for i in range(1, n + 1):
+        a = to_float(csv_data_points[i][c1])
+        f = to_float(csv_data_points[i][c2])
+        if a is None or f is None:
+            vals.append(0)
+        elif (a > 12.5 and f > -0.9) or (a <= 12.5 and f < -1.0):
+            vals.append(1)
+        else:
+            vals.append(-1)
+    return vals
+
+KRAUSE_SCORES = Age_and_Fe_H_ratio_function(n_krause, c1=6, c2=7)
+KRAUSE_NAME_SCORE = list(zip([krause_data_points[i][1] for i in range(1, n_krause + 1)], KRAUSE_SCORES))
+KRAUSE_NAME_SCORE.sort(key=lambda t: t[1], reverse=True)
+
+print("\n=== KRAUSE (top 5) ===")
+print(KRAUSE_NAME_SCORE[:5])
+print("=== KRAUSE (bottom 5) ===")
+print(KRAUSE_NAME_SCORE[-5:])
+
+# ===== Combine by ID + bucket like PDF =====
+combined = {}
+for name, s in HARRIS_NAME_SCORE:
+    combined[name] = combined.get(name, 0.0) + float(s)
+for name, s in KRAUSE_NAME_SCORE:
+    combined[name] = combined.get(name, 0.0) + float(s)
+
+FINAL = sorted(combined.items(), key=lambda t: t[1], reverse=True)
+
+certain   = [n for n, s in FINAL if s >= 7.5]
+likely    = [n for n, s in FINAL if 3 <= s < 7.5]
+possible  = [n for n, s in FINAL if -1 <= s < 3]
+unlikely  = [n for n, s in FINAL if -5.5 <= s < -1]
+not_gc    = [n for n, s in FINAL if s < -5.5]
+
+print("\n=== BINS ===")
+print("Certain :", certain[:10], ("... (+more)" if len(certain) > 10 else ""))
+print("Likely  :", likely[:10], ("... (+more)" if len(likely) > 10 else ""))
+print("Possible:", possible[:10], ("... (+more)" if len(possible) > 10 else ""))
+print("Unlikely:", unlikely[:10], ("... (+more)" if len(unlikely) > 10 else ""))
+print("Not_GC  :", not_gc[:10], ("... (+more)" if len(not_gc) > 10 else ""))
+
+# ===== Save CSVs for Excel =====
+out_dir = Path(__file__).resolve().parent.parent / "outputs"
+out_dir.mkdir(exist_ok=True)
+
+with open(out_dir / "Harris_Scores.csv", "w", newline="", encoding="utf-8") as f:
+    w = csv.writer(f); w.writerow(["ID", "Harris_Score"]); w.writerows(HARRIS_NAME_SCORE)
+
+with open(out_dir / "Krause_Scores.csv", "w", newline="", encoding="utf-8") as f:
+    w = csv.writer(f); w.writerow(["ID", "Krause_Score"]); w.writerows(KRAUSE_NAME_SCORE)
+
+with open(out_dir / "Combined_Scores.csv", "w", newline="", encoding="utf-8") as f:
+    w = csv.writer(f); w.writerow(["ID", "Combined_Score"]); w.writerows(FINAL)
+
+print(f"\n📁 Saved outputs to: {out_dir}")
