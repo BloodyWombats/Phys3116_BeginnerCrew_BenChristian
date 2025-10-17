@@ -160,98 +160,6 @@ def Projected_eccentricity(n, c=23):
 
 def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
     """
-    Direction of Galactic Orbit (better) — PDF logic cleaned for VS Code.
-    Columns (Harris):
-      l=L (galactic longitude), s=R_Sun, g=R_gc, x=X, y=Y, v=v_r (heliocentric)
-    """
-    values = []
-    for i in range(1, n + 1):  # row 0 is header
-        L  = csv_data_points[i][l]
-        RS = csv_data_points[i][s]
-        RG = csv_data_points[i][g]
-        X  = csv_data_points[i][x]
-        Y  = csv_data_points[i][y]
-        VR = csv_data_points[i][v]
-
-        # blank checks (match PDF behavior)
-        if (len(L) == 0 or len(RS) == 0 or len(RG) == 0 or
-            len(X) == 0 or len(Y) == 0 or len(VR) == 0):
-            values.append(0)
-            continue
-
-        # parse numerics
-        L  = float(L)     # degrees
-        RS = float(RS)
-        RG = float(RG)
-        X  = float(X)
-        Y  = float(Y)
-        VR = float(VR)
-
-        # pick phi depending on Y sign (PDF logic)
-        phi = L if Y > 0 else (360.0 - L)
-
-        # region cases
-        if X >= 8:
-            # L1 or R1
-            psi = np.pi/2 - (8.0 / RS) * sin(radians(phi))
-            v_helio_corrected = VR * cos(psi)
-            v_orbit = 44 * RG if RG < 5 else 220
-
-            if (Y > 0 and VR > 0) or (Y < 0 and VR < 0):
-                values.append(-3)
-            elif (Y > 0 and abs(v_helio_corrected) > v_orbit):
-                values.append(-3)
-            elif (Y > 0 and abs(v_helio_corrected) < v_orbit):
-                values.append(3)
-            elif (Y < 0 and abs(v_helio_corrected) < v_orbit):
-                values.append(-3)
-            elif (Y < 0 and abs(v_helio_corrected) > v_orbit):
-                values.append(3)
-            else:
-                values.append(0)
-
-        elif 0 < X < 8:
-            # L2 or R2
-            psi = (8.0 / RS) * sin(radians(phi)) - np.pi/2
-            v_helio_corrected = VR * cos(psi)
-            v_orbit = 44 * RG if RG < 5 else 220
-
-            if (Y > 0 and VR > 0) or (Y < 0 and VR < 0):
-                values.append(-3)
-            elif (Y > 0 and abs(v_helio_corrected) > v_orbit):
-                values.append(-3)
-            elif (Y > 0 and abs(v_helio_corrected) < v_orbit):
-                values.append(3)
-            elif (Y < 0 and abs(v_helio_corrected) < v_orbit):
-                values.append(-3)
-            elif (Y < 0 and abs(v_helio_corrected) > v_orbit):
-                values.append(3)
-            else:
-                values.append(0)
-
-        else:
-            # L3 or R3 (X <= 0)
-            psi = np.pi/2 - (8.0 / RS) * sin(radians(phi))
-            v_helio_corrected = VR * cos(psi)
-            v_orbit = 44 * RG if RG < 5 else 220
-
-            if (Y > 0 and VR > 0) or (Y < 0 and VR < 0):
-                values.append(-3)
-            elif (Y > 0 and abs(v_helio_corrected) < v_orbit):
-                values.append(-3)
-            elif (Y > 0 and abs(v_helio_corrected) > v_orbit):
-                values.append(3)
-            elif (Y < 0 and abs(v_helio_corrected) < v_orbit):
-                values.append(-3)
-            elif (Y < 0 and abs(v_helio_corrected) > v_orbit):
-                values.append(3)
-            else:
-                values.append(0)
-
-    return values
-
-def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
-    """
     Direction of Galactic Orbit 
     Harris columns:
       l=L (deg), s=R_Sun, g=R_gc, x=X, y=Y, v=v_r (heliocentric km/s)
@@ -266,7 +174,7 @@ def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
         Ys = csv_data_points[i][y]
         Vr = csv_data_points[i][v]
 
-        # blank checks (same behaviour as the PDF)
+        # blank checks 
         if (len(Ls) == 0 or len(Rs) == 0 or len(Rg) == 0 or
             len(Xs) == 0 or len(Ys) == 0 or len(Vr) == 0):
             values.append(0)
@@ -280,7 +188,7 @@ def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
         Y  = float(Ys)
         VR = float(Vr)
 
-        # choose phi by the sign of Y (PDF logic)
+        # choose phi by the sign of Y (0 < phi < 360)
         phi = L if Y > 0 else (360.0 - L)
 
         # region branches
@@ -342,5 +250,8 @@ def Gal_Orbit2(n, l=4, s=6, g=7, x=8, y=9, v=24):
                 values.append(0)
 
     return values
+
+
+
 
 
